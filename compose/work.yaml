@@ -1,0 +1,16 @@
+version: "3"
+services:
+  machine01:
+     image: ubuntu:latest
+     command: sudo service ssh start
+     tty: true
+     depends_on:
+      - postgres
+      - redis
+      - kafka
+     ports:
+      - 60022:22
+     networks:
+      workbench:
+        ipv4_address: 172.21.0.31
+      

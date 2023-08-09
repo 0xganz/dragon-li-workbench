@@ -1,0 +1,65 @@
+version: "3"
+services:
+  postgres:
+    image: postgres:12.9
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - 5432:5432
+    environment:
+      POSTGRES_PASSWORD: Base123
+    networks:
+      workbench:
+        ipv4_address: 172.21.0.5
+  redis:
+    image: redis:5.0
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/opt/redis/data
+    networks:
+      workbench:
+        ipv4_address: 172.21.0.3
+  zookeeper:
+    image: docker.io/bitnami/zookeeper:3.8
+    ports:
+      - "2181:2181"
+    volumes:
+      - "zookeeper_data:/bitnami"
+    environment:
+      - ALLOW_ANONYMOUS_LOGIN=yes
+
+  kafka:
+    image: bitnami/kafka:3.4.0
+    depends_on:
+      - zookeeper
+    ports:
+      - "9092:9092"
+    volumes:
+      - "kafka_data:/bitnami/kafka"
+    environment:
+      - KAFKA_ADVERTISED_LISTENERS=LISTENER_DOCKER_INTERNAL://kafka:19092,LISTENER_DOCKER_EXTERNAL://${DOCKER_HOST_IP:-kafka}:9092
+      - ALLOW_PLAINTEXT_LISTENER=yes
+      - KAFKA_CFG_AUTO_CREATE_TOPICS_ENABLE=true 
+      - KAFKA_CFG_ZOOKEEPER_CONNECT=zookeeper:2181
+      - KAFKA_BROKER_ID=1
+      - KAFKA_LOG4J_LOGGERS=kafka.controller=INFO,kafka.producer.async.DefaultEventHandler=INFO,state.change.logger=INFO
+      - KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR=1
+      - KAFKA_LOG_RETENTION_MS=8640000  # 2.4 hours
+      - KAFKA_LOG_RETENTION_CHECK_INTERVAL_MS=360000 # 0.1 hour
+    networks:
+      workbench:
+        ipv4_address: 172.21.0.4
+
+
+volumes:
+  redis_data: {}
+  postgres_data: {}
+  kafka_data: {}
+  zookeeper_data: {}
+networks:
+  workbench:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.21.0.0/16
